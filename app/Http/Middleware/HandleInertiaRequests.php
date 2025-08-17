@@ -44,7 +44,21 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
-                'user' => $request->user(),
+                'user' => function () use ($request) {
+                    $user = $request->user();
+                    if (! $user) {
+                        return null;
+                    }
+
+                    // Share a minimal, typed-safe payload expected by the frontend
+                    return array_merge(
+                        $user->only(['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']),
+                        [
+                            'roles' => $user->getRoleNames()->values()->all(),
+                            'permissions' => $user->getPermissionNames()->values()->all(),
+                        ]
+                    );
+                },
             ],
             'ziggy' => fn (): array => [
                 ...(new Ziggy)->toArray(),
